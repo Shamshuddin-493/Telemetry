@@ -1,0 +1,11 @@
+[project]
+name = "telemetry-api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi[standard]>=0.142.2",
+    "psycopg2>=2.9.13",
+    "sqlalchemy>=2.1.3",
+]
