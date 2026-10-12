@@ -1,15 +1,26 @@
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import Integer,String,DateTime,JSON
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column,relationship
+from sqlalchemy import Integer,String,DateTime,JSON,ForeignKey
 from datetime import datetime, timezone
 
 class Base(DeclarativeBase):
     pass
 
-class TelmetryEvent(Base):      
+class Client(Base):
+    __tablename__="""clients"""
+
+    id: Mapped[int]= mapped_column(primary_key=True, index=True)
+    name: Mapped[str]= mapped_column(String(100), unique=True, index=True)
+    api_key: Mapped[str]= mapped_column(String(100), unique=True, index=True)
+    created_at: Mapped[datetime]= mapped_column(default=lambda: datetime.now(timezone.utc), index=True)
+    events: Mapped[list["TelemetryEvent"]]= relationship (back_populates="client", cascade="all, delete-orphan")
+
+class TelemetryEvent(Base):      
     __tablename__="""telemetry_event"""
     
-    id:Mapped[int] = mapped_column(Integer,primary_key=True,index=True)
-    user_id: Mapped[int]= mapped_column(Integer,index=True)
+    id:Mapped[int] = mapped_column(Integer,primary_key=True, index=True)
+    client_id: Mapped[int]= mapped_column(ForeignKey("clients.id"), index=True)
+    user_id: Mapped[str]= mapped_column(String,index=True)
     event_type: Mapped[str]= mapped_column(String(50))
+    event_metadata: Mapped[dict]= mapped_column(JSON, default=dict)
     timestamp: Mapped[datetime]= mapped_column(DateTime,default=lambda:datetime.now(timezone.utc),index=True)
-    event_metadata: Mapped[datetime]= mapped_column(JSON, default=dict)
+    client: Mapped["Client"]= relationship(back_populates="events")
