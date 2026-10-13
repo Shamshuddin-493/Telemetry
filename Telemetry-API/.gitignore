@@ -10,3 +10,6 @@ wheels/
 .venv
 .env
 
+alembic/env.py
+alembic/script.py.mako
+alembic.ini
