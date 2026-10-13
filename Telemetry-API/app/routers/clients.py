@@ -1,7 +1,7 @@
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models import Client
 from app.schemas import ClientCreate, ClientResponse
@@ -9,10 +9,11 @@ from app.schemas import ClientCreate, ClientResponse
 router = APIRouter(prefix="/clients", tags=["Clients"])
 
 # ---1. Client Onboarding Route ---
-@router.post('/clients',response_model=ClientResponse, status_code=201)
-def register_client(client_data: ClientCreate, db: Session= Depends(get_db)):
-    existing_client=db.query(Client).filter(Client.name == client_data.name).first()
-    if existing_client:
+@router.post('',response_model=ClientResponse, status_code=201)
+async def register_client(client_data: ClientCreate, db: AsyncSession= Depends(get_db)):
+    stmt= select(Client).where(Client.name == client_data.name)
+    result= await db.execute(stmt)
+    if result.scalar_one_or_none():
         raise HTTPException(
             status_code=400,
             detail="Client with this name already exists"
@@ -21,18 +22,18 @@ def register_client(client_data: ClientCreate, db: Session= Depends(get_db)):
     # Generating a crytographically secure random API KEY
     generated_key=f'tel_{secrets.token_urlsafe(32)}'
 
-    db_client=Client(
-        name=client_data.name,
-        api_key=generated_key
+    client=Client(
+        name=client_data.name, api_key=generated_key
     )
 
-    db.add(db_client)
-    db.commit()
-    db.refresh(db_client)
-    return db_client
+    db.add(client)
+    await db.commit()
+    await db.refresh(client)
+    return client
 
 # ---2. Clients Retrieval---
-@router.get('/clients', response_model=list[ClientResponse], status_code=200)
-def get_clients(limit:int=10, db:Session=Depends(get_db)):
-    clients=db.query(Client).order_by(Client.created_at.desc()).limit(limit).all()
-    return clients
+@router.get('', response_model=list[ClientResponse], status_code=200)
+async def get_clients(limit:int=10, db:AsyncSession=Depends(get_db)):
+    stmt=select(Client).order_by(Client.created_at.desc()).limit(limit)
+    result= await db.execute(stmt)
+    return result.scalars().all()

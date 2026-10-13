@@ -1,24 +1,28 @@
 import os
-
+from collections.abc import AsyncGenerator
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 load_dotenv(interpolate=True)
 
 db_url = os.getenv("DB_URL") or os.getenv("DATABASE_URL") or "sqlite:///./telemetry.db"
-engine_kwargs = {}
-
-if db_url.startswith("sqlite"):
-    engine_kwargs["connect_args"] = {"check_same_thread": False}
-
-engine = create_engine(db_url, **engine_kwargs)
-SessionLocal = sessionmaker(autoflush=False, autocommit=False, bind=engine)
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+engine = create_async_engine(
+    db_url, 
+    echo=False, 
+    pool_size=20,
+    max_overflow=10
+    )
+AsyncSessionLocal= async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False
+)
+
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        yield session
