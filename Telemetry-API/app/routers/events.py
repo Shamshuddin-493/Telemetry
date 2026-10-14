@@ -1,10 +1,11 @@
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, Depends, BackgroundTasks, Query
+from fastapi import APIRouter, Depends, BackgroundTasks, Query, Request
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import AsyncSessionLocal, get_db
 from app.dependencies import get_current_client
+from app.limiter import limiter
 from app.models import Client, TelemetryEvent
 from app.schemas import (
     EventCreate,
@@ -41,7 +42,9 @@ async def write_event_to_db(client_id: int, event_data: EventCreate):
     response_model=EventAcceptedResponse,
     status_code=202
 )
-def track_event(
+@limiter.limit("120/minute")
+async def track_event(
+    request: Request,
     event: EventCreate,
     background_tasks: BackgroundTasks,
     client: Client = Depends(get_current_client)
@@ -53,7 +56,9 @@ def track_event(
 
 # --- 2. Batch Ingestion Route ---
 @router.post("/batch", response_model=EventBatchResponse, status_code=201)
+@limiter.limit("30/minute")
 async def track_events_batch(
+    request: Request,
     batch: EventBatchCreate,
     client: Client = Depends(get_current_client),
     db: AsyncSession = Depends(get_db)
@@ -81,7 +86,9 @@ async def track_events_batch(
 
 # --- 3. Filtered & Paginated Events Retrieval ---
 @router.get("", response_model=PaginatedEventsResponse, status_code=200)
+@limiter.limit("10/minute")
 async def get_events(
+    request: Request,
     event_type: Optional[str] = Query(None, description="Filter by event category"),
     user_id: Optional[str] = Query(None, description="Filter by user identifier"),
     start_time: Optional[datetime] = Query(None, description="Filter events after this ISO datetime"),
