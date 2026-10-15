@@ -9,7 +9,7 @@ from app.schemas import AnalyticsSummary, EventTypeSummary
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 # --- 6. For Client-side analytical summary ---
-@router.get('/analytics/summary', response_model=AnalyticsSummary, status_code=200)
+@router.get('/summary', response_model=AnalyticsSummary, status_code=200)
 async def get_analytics_summary(client:Client= Depends(get_current_client), db:AsyncSession= Depends(get_db)):
     total_stmt = select(func.count(TelemetryEvent.id)).where(TelemetryEvent.client_id == client.id)
     total_events = (await db.execute(total_stmt)).scalar() or 0
