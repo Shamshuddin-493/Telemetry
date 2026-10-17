@@ -1,18 +1,30 @@
-from fastapi import FastAPI
+from pathlib import Path
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
 from app.limiter import limiter
-from slowapi import _rate_limit_exceeded_handler
+from app.audit import dispatch_audit
+from app.middleware import AutoAuditMiddleware
 from app.routers import clients, events, analytics
-from pathlib import Path
 
 app= FastAPI(
     title="Telemetry Gateway API", description="High-throughput multi-tenant telemetry ingestion gateway"
 )
 
 app.state.limiter= limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler) # type: ignore[arg-type]
+# Part of the 10%: Rate limit breaches caught before endpoint execution
+def rate_limit_custom_handler(request: Request, exc: Exception) -> Response:
+    dispatch_audit(
+        action="RATE_LIMIT_EXCEEDED",
+        status="WARNING",
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        details={"path": request.url.path, "detail": str(exc)},
+    )
+    return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"})
+app.add_exception_handler(RateLimitExceeded, rate_limit_custom_handler)
+app.add_middleware(AutoAuditMiddleware)
 
 app.include_router(clients.router)
 app.include_router(events.router)

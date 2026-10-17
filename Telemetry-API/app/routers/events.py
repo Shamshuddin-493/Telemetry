@@ -42,7 +42,7 @@ async def write_event_to_db(client_id: int, event_data: EventCreate):
     response_model=EventAcceptedResponse,
     status_code=202
 )
-@limiter.limit("120/minute")
+# @limiter.limit("120/minute")
 async def track_event(
     request: Request,
     event: EventCreate,
@@ -56,7 +56,7 @@ async def track_event(
 
 # --- 2. Batch Ingestion Route ---
 @router.post("/batch", response_model=EventBatchResponse, status_code=201)
-@limiter.limit("30/minute")
+# @limiter.limit("30/minute")
 async def track_events_batch(
     request: Request,
     batch: EventBatchCreate,
@@ -86,7 +86,7 @@ async def track_events_batch(
 
 # --- 3. Filtered & Paginated Events Retrieval ---
 @router.get("", response_model=PaginatedEventsResponse, status_code=200)
-@limiter.limit("10/minute")
+# @limiter.limit("10/minute")
 async def get_events(
     request: Request,
     event_type: Optional[str] = Query(None, description="Filter by event category"),

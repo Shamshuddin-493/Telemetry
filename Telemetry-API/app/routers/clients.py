@@ -11,7 +11,7 @@ router = APIRouter(prefix="/clients", tags=["Clients"])
 
 # ---1. Client Onboarding Route ---
 @router.post('',response_model=ClientResponse, status_code=201)
-@limiter.limit("60/minute")
+# @limiter.limit("60/minute")
 async def register_client(
     request: Request,
     client_data: ClientCreate, 
@@ -38,7 +38,7 @@ async def register_client(
 
 # ---2. Clients Retrieval---
 @router.get('', response_model=list[ClientResponse], status_code=200)
-@limiter.limit("120/minute")
+# @limiter.limit("120/minute")
 async def get_clients(
     request: Request,
     limit:int=10, 
