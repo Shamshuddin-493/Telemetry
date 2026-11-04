@@ -25,7 +25,10 @@ COPY Telemetry-API/uv.lock ./
 RUN uv pip install --system -r pyproject.toml
 
 # Copy application source code
-COPY Telemetry-API/ /app/
+COPY Telemetry-API/ /app/Telemetry-API
+COPY static/ /app/static/
+
+WORKDIR /app/Telemetry-API
 
 # Expose FastAPI default port
 EXPOSE 8000
