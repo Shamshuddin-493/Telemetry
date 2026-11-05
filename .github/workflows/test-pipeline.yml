@@ -1,0 +1,78 @@
+name: CI Automated Testing Pipeline
+
+on:
+  push:
+    branches: [ main, master, featureBranch, 'feature/**' ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    name: Run Migrations & Python Playwright E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      POSTGRES_USER: fapi
+      POSTGRES_PASSWORD: reemas_493
+      POSTGRES_DB: telemetry
+      DATABASE_URL: postgresql+asyncpg://fapi:reemas_493@127.0.0.1:5432/telemetry
+      DATABASE_URL_ALEMBIC: postgresql+psycopg2://fapi:reemas_493@127.0.0.1:5432/telemetry
+      ENVIRONMENT: test
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: fapi
+          POSTGRES_PASSWORD: reemas_493
+          POSTGRES_DB: telemetry
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fapi -d telemetry"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install uv and App Dependencies
+        run: |
+          pip install --upgrade pip uv
+          uv pip install --system -r Telemetry-API/pyproject.toml
+          # Install testing dependencies: pytest and python playwright
+          uv pip install --system pytest pytest-playwright
+
+      - name: Install Playwright Chromium Browser
+        run: |
+          playwright install --with-deps chromium
+
+      - name: Apply Alembic Migrations
+        working-directory: ./Telemetry-API
+        run: |
+          alembic upgrade head
+
+      - name: Start FastAPI Background Server
+        working-directory: ./Telemetry-API
+        run: |
+          nohup uvicorn main:app --host 0.0.0.0 --port 8000 > uvicorn.log 2>&1 &
+          timeout 30 bash -c 'until curl -s http://127.0.0.1:8000/health | grep -q "ok"; do sleep 1; done'
+
+      - name: Run Playwright E2E Tests
+        run: |
+          pytest tests/test_e2e_gateway.py -v
+
+      - name: Output Server Logs on Failure
+        if: failure()
+        run: |
+          echo "=== Uvicorn Server Logs ==="
+          cat Telemetry-API/uvicorn.log || true
