@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Telemetry Gateway Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-6 font-sans">
+  <div class="max-w-6xl mx-auto space-y-6">
+    <header class="border-b border-slate-700 pb-4 flex justify-between items-center">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">Telemetry Gateway Console</h1>
+        <p class="text-sm text-slate-400">Local Dev Dashboard & Interactive Tester</p>
+      </div>
+      <div id="connection-status" class="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs rounded-full font-medium">
+        Ready
+      </div>
+    </header>
+
+    <!-- Client Config & API Key -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-800/60 p-5 rounded-xl border border-slate-700">
+      <div class="space-y-3">
+        <h2 class="text-base font-semibold text-slate-200">1. Client Onboarding</h2>
+        <div class="flex gap-2">
+          <input id="client-name-input" type="text" placeholder="Client Name (e.g. web-app)" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:border-indigo-500" />
+          <button id="register-client-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            Register
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <h2 class="text-base font-semibold text-slate-200">2. Active Authentication Header</h2>
+        <div class="flex gap-2">
+          <input id="api-key-input" type="text" placeholder="X-API-KEY will appear here or paste manual key" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm flex-1 font-mono text-xs focus:outline-none focus:border-indigo-500" />
+          <button id="save-key-btn" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm px-4 py-2 rounded-lg transition">
+            Set
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Event Ingestion & Analytics Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Ingestion Panel -->
+      <section class="md:col-span-1 bg-slate-800/60 p-5 rounded-xl border border-slate-700 space-y-4">
+        <h2 class="text-base font-semibold text-slate-200">Track Event</h2>
+        
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400">User ID</label>
+          <input id="event-user-id" type="text" value="usr_test_101" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm" />
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400">Event Type</label>
+          <input id="event-type" type="text" value="button_click" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm" />
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400">Metadata (JSON)</label>
+          <textarea id="event-metadata" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs font-mono">{"page": "/dashboard", "browser": "playwright"}</textarea>
+        </div>
+
+        <div class="flex flex-col gap-2 pt-2">
+          <button id="send-event-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg text-sm transition">
+            Dispatch Single Event
+          </button>
+          <button id="send-batch-btn" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 rounded-lg text-sm transition">
+            Dispatch Sample Batch (3 Events)
+          </button>
+        </div>
+        <p id="ingest-status-msg" class="text-xs text-slate-400 h-4"></p>
+      </section>
+
+      <!-- Events List & Metrics Panel -->
+      <section class="md:col-span-2 bg-slate-800/60 p-5 rounded-xl border border-slate-700 flex flex-col justify-between">
+        <div class="space-y-4">
+          <div class="flex justify-between items-center">
+            <h2 class="text-base font-semibold text-slate-200">Ingested Events & Analytics</h2>
+            <div class="flex gap-2">
+              <button id="refresh-analytics-btn" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-slate-200 transition">
+                Load Analytics
+              </button>
+              <button id="refresh-events-btn" class="text-xs bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg text-white font-medium transition">
+                Refresh Events
+              </button>
+            </div>
+          </div>
+
+          <!-- Summary Badges -->
+          <div id="analytics-container" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div class="bg-slate-950 p-3 rounded-lg border border-slate-700/60">
+              <span class="text-xs text-slate-400">Total Ingested</span>
+              <p id="metric-total-events" class="text-xl font-bold text-white mt-1">0</p>
+            </div>
+            <div class="bg-slate-950 p-3 rounded-lg border border-slate-700/60">
+              <span class="text-xs text-slate-400">Unique Users</span>
+              <p id="metric-unique-users" class="text-xl font-bold text-white mt-1">0</p>
+            </div>
+            <div class="bg-slate-950 p-3 rounded-lg border border-slate-700/60 col-span-2 sm:col-span-1">
+              <span class="text-xs text-slate-400">Status</span>
+              <p id="metric-status" class="text-sm font-semibold text-emerald-400 mt-2">Active</p>
+            </div>
+          </div>
+
+          <!-- Events Table -->
+          <div class="overflow-x-auto rounded-lg border border-slate-700">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-950 text-slate-400 border-b border-slate-700 uppercase tracking-wider">
+                <tr>
+                  <th class="p-2.5">ID</th>
+                  <th class="p-2.5">User</th>
+                  <th class="p-2.5">Event Type</th>
+                  <th class="p-2.5">Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="events-table-body" class="divide-y divide-slate-800 text-slate-300">
+                <tr>
+                  <td colspan="4" class="p-4 text-center text-slate-500">No events loaded yet. Click "Refresh Events".</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const apiKeyInput = document.getElementById('api-key-input');
+    const ingestStatus = document.getElementById('ingest-status-msg');
+
+    // Helper: Auth Headers
+    function getHeaders() {
+      const key = apiKeyInput.value.trim();
+      const headers = { 'Content-Type': 'application/json' };
+      if (key) headers['X-API-KEY'] = key;
+      return headers;
+    }
+
+    // Register Client
+    document.getElementById('register-client-btn').addEventListener('click', async () => {
+      const name = document.getElementById('client-name-input').value.trim();
+      if (!name) return alert('Provide a client name');
+
+      try {
+        const res = await fetch('/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          apiKeyInput.value = data.api_key;
+          ingestStatus.textContent = `Registered client: ${data.name}`;
+          ingestStatus.className = "text-xs text-emerald-400 h-4";
+        } else {
+          alert(data.detail || 'Failed to register client');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // Ingest Single Event
+    document.getElementById('send-event-btn').addEventListener('click', async () => {
+      const userId = document.getElementById('event-user-id').value.trim();
+      const eventType = document.getElementById('event-type').value.trim();
+      let metadata = {};
+      try {
+        metadata = JSON.parse(document.getElementById('event-metadata').value);
+      } catch {
+        return alert('Metadata must be valid JSON');
+      }
+
+      try {
+        const res = await fetch('/events', {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ user_id: userId, event_type: eventType, event_metadata: metadata })
+        });
+        const data = await res.json();
+        if (res.status === 202) {
+          ingestStatus.textContent = 'Event accepted (202 Accepted)';
+          ingestStatus.className = 'text-xs text-emerald-400 h-4';
+        } else {
+          ingestStatus.textContent = data.detail || 'Error sending event';
+          ingestStatus.className = 'text-xs text-rose-400 h-4';
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // Ingest Batch
+    document.getElementById('send-batch-btn').addEventListener('click', async () => {
+      const payload = {
+        events: [
+          { user_id: 'usr_batch_9', event_type: 'page_view', event_metadata: { path: '/home' } },
+          { user_id: 'usr_batch_10', event_type: 'add_to_cart', event_metadata: { item_id: 42 } },
+          { user_id: 'usr_batch_11', event_type: 'checkout_step', event_metadata: { step: 1 } }
+        ]
+      };
+
+      try {
+        const res = await fetch('/events/batch', {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.status === 201) {
+          ingestStatus.textContent = `Batch ingested: ${data.ingested_count} events`;
+          ingestStatus.className = 'text-xs text-emerald-400 h-4';
+        } else {
+          ingestStatus.textContent = data.detail || 'Batch ingestion failed';
+          ingestStatus.className = 'text-xs text-rose-400 h-4';
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // Refresh Events
+    document.getElementById('refresh-events-btn').addEventListener('click', async () => {
+      try {
+        const res = await fetch('/events?limit=10', { headers: getHeaders() });
+        const data = await res.json();
+        const tbody = document.getElementById('events-table-body');
+        tbody.innerHTML = '';
+
+        if (!data.items || data.items.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500">No events found.</td></tr>';
+          return;
+        }
+
+        data.items.forEach(ev => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td class="p-2.5 font-mono text-slate-400">${ev.id}</td>
+            <td class="p-2.5 font-medium text-slate-200">${ev.user_id}</td>
+            <td class="p-2.5"><span class="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono">${ev.event_type}</span></td>
+            <td class="p-2.5 text-slate-400 font-mono">${new Date(ev.timestamp).toLocaleTimeString()}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // Refresh Analytics Summary
+    document.getElementById('refresh-analytics-btn').addEventListener('click', async () => {
+      try {
+        const res = await fetch('/analytics/summary', { headers: getHeaders() });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('metric-total-events').textContent = data.total_events;
+          document.getElementById('metric-unique-users').textContent = data.unique_users;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
