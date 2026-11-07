@@ -76,3 +76,21 @@ jobs:
         run: |
           echo "=== Uvicorn Server Logs ==="
           cat Telemetry-API/uvicorn.log || true
+  deploy:
+    name: Deploy to AWS EC2
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Application via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/Telemetry
+            git pull origin main
+            docker compose up --build -d
+            docker system prune -f
