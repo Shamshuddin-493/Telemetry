@@ -24,8 +24,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    expose:
-      - "8000"
+    ports:
+      - "127.0.0.1:8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://fapi:reemas_493@db:5432/telemetry
       DATABASE_URL_ALEMBIC: postgresql+psycopg2://fapi:reemas_493@db:5432/telemetry
